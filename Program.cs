@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 
@@ -8,54 +9,49 @@ namespace Padding_Oracle_Attack
     {
         public static void Main()
         {
-            string original = "Here is some data to encrypt!";
+            string hiddenMessage = "I'd just like to interject for a moment. What you’re referring to as Linux, is in fact, GNU/Linux, or as I’ve recently taken to calling it, GNU plus Linux.";
 
-            // Create a new instance of the Aes
-            // class.  This generates a new key and initialization
-            // vector (IV).
-            using (Aes myAes = Aes.Create())
+            using (Aes aes = Aes.Create())
             {
+                byte[] encrypted = EncryptStringToBytes_Aes(hiddenMessage);
+                var blocks = sliceBytesIntoBlocks(encrypted);
 
-                // Encrypt the string to an array of bytes.
-                byte[] encrypted = EncryptStringToBytes_Aes(original, myAes.Key, myAes.IV);
-
-                // Decrypt the bytes to a string.
-                string roundtrip = DecryptStringFromBytes_Aes(encrypted, myAes.Key, myAes.IV);
-
-                //Display the original data and the decrypted data.
-                Console.WriteLine("Original:   {0}", original);
-                Console.WriteLine("Round Trip: {0}", roundtrip);
+                Console.WriteLine("Plaintext:\n{0}", hiddenMessage);
+                Console.WriteLine("\nCiphertext:\n{0}", String.Join("\n", blocks.ConvertAll(block => Convert.ToBase64String(block))));
+                Console.WriteLine("\nAttack results:\nTODO");
             }
         }
-        static byte[] EncryptStringToBytes_Aes(string plainText, byte[] Key, byte[] IV)
+
+        static List<byte[]> sliceBytesIntoBlocks(byte[] bytes, int blockSizeBytes = 16)
         {
-            // Check arguments.
-            if (plainText == null || plainText.Length <= 0)
-                throw new ArgumentNullException("plainText");
-            if (Key == null || Key.Length <= 0)
-                throw new ArgumentNullException("Key");
-            if (IV == null || IV.Length <= 0)
-                throw new ArgumentNullException("IV");
+            var blocks = new List<byte[]>();
+
+            for (var i = 0; i < bytes.Length; i += blockSizeBytes)
+            {
+                byte[] block = new byte[blockSizeBytes];
+                Array.Copy(bytes, i, block, 0, blockSizeBytes);
+                blocks.Add(block);
+            }
+
+            return blocks;
+        }
+        static byte[] EncryptStringToBytes_Aes(string plainText)
+        {
             byte[] encrypted;
 
-            // Create an Aes object
-            // with the specified key and IV.
             using (Aes aesAlg = Aes.Create())
             {
-                aesAlg.Key = Key;
-                aesAlg.IV = IV;
+                aesAlg.Mode = CipherMode.CBC;
+                aesAlg.Padding = PaddingMode.PKCS7;
 
-                // Create an encryptor to perform the stream transform.
                 ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
 
-                // Create the streams used for encryption.
                 using (MemoryStream msEncrypt = new MemoryStream())
                 {
                     using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
                     {
                         using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
                         {
-                            //Write all data to the stream.
                             swEncrypt.Write(plainText);
                         }
                         encrypted = msEncrypt.ToArray();
@@ -63,10 +59,7 @@ namespace Padding_Oracle_Attack
                 }
             }
 
-
-            // Return the encrypted bytes from the memory stream.
             return encrypted;
-
         }
 
         static string DecryptStringFromBytes_Aes(byte[] cipherText, byte[] Key, byte[] IV)
