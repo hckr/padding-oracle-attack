@@ -5,7 +5,7 @@ namespace Padding_Oracle_Attack
 {
     static class ByteUtils
     {
-        public static List<byte[]> sliceBytesIntoBlocks(byte[] bytes, int blockSizeBytes = 16)
+        public static List<byte[]> SliceIntoBlocks(byte[] bytes, int blockSizeBytes = 16)
         {
             var blocks = new List<byte[]>();
 
@@ -19,7 +19,7 @@ namespace Padding_Oracle_Attack
             return blocks;
         }
 
-        public static byte[] concat(byte[] first, byte[] second)
+        public static byte[] Concatenate(byte[] first, byte[] second)
         {
             var result = new byte[first.Length + second.Length];
 

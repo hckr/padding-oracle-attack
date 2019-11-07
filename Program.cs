@@ -1,10 +1,9 @@
-﻿using System;
+﻿using System.Diagnostics;
+using System;
 using System.Text;
 
 namespace Padding_Oracle_Attack
 {
-    using static ByteUtils;
-
     class PaddingOracleAttack
     {
         private static RemoteServerMock server = new RemoteServerMock();
@@ -15,16 +14,31 @@ namespace Padding_Oracle_Attack
             string plaintext = Console.ReadLine();
 
             byte[] encrypted = server.Encrypt(plaintext);
-            var blocks = sliceBytesIntoBlocks(encrypted);
+            var blocks = ByteUtils.SliceIntoBlocks(encrypted);
 
             Console.WriteLine("\nCiphertext blocks (base64):\n{0}", String.Join("\n", blocks.ConvertAll(block => Convert.ToBase64String(block))));
             Console.WriteLine("\nPadding oracle attack results:");
             Console.WriteLine("(first block cannot be decrypted)");
 
+            var stopwatch = new Stopwatch();
+
             for (int blockIndex = 1; blockIndex < blocks.Count; ++blockIndex)
             {
+                stopwatch.Start();
+
                 string decryptedPlaintext = DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]);
+
+                stopwatch.Stop();
+
                 Console.WriteLine(decryptedPlaintext[0] != 16 ? decryptedPlaintext : "(padding-only block)");
+            }
+
+            var decodedBlocksCount = blocks.Count - 1;
+            Console.WriteLine("\nDecoded {0} blocks.", decodedBlocksCount);
+
+            if (decodedBlocksCount > 0) {
+                var timeElapsed = stopwatch.Elapsed;
+                Console.WriteLine("Time elapsed: {0}, avg {1:0.0} ms per block", timeElapsed.ToString(), timeElapsed.Divide(decodedBlocksCount).TotalMilliseconds);
             }
         }
 
@@ -45,7 +59,7 @@ namespace Padding_Oracle_Attack
                 for (byte v = byte.MinValue; v <= byte.MaxValue; ++v)
                 {
                     manipulatedPrevious[block.Length - paddingLength] = v;
-                    if (server.IsPaddingCorrect(concat(manipulatedPrevious, block)))
+                    if (server.IsPaddingCorrect(ByteUtils.Concatenate(manipulatedPrevious, block)))
                     {
                         found = true;
                         decrypted[block.Length - paddingLength] = (byte)(previousBlock[block.Length - paddingLength] ^ paddingLength ^ v);
