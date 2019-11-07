@@ -11,18 +11,20 @@ namespace Padding_Oracle_Attack
 
         public static void Main()
         {
-            string hiddenMessage = "I'd just like to interject for a moment. What you’re referring to as Linux, is in fact, GNU/Linux, or as I’ve recently taken to calling it, GNU plus Linux.";
+            Console.WriteLine("Enter plaintext:");
+            string plaintext = Console.ReadLine();
 
-            byte[] encrypted = server.Encrypt(hiddenMessage);
+            byte[] encrypted = server.Encrypt(plaintext);
             var blocks = sliceBytesIntoBlocks(encrypted);
 
-            Console.WriteLine("Plaintext:\n{0}", hiddenMessage);
-            Console.WriteLine("\nCiphertext:\n{0}", String.Join("\n", blocks.ConvertAll(block => Convert.ToBase64String(block))));
-            Console.WriteLine("\nAttack results:");
+            Console.WriteLine("\nCiphertext blocks (base64):\n{0}", String.Join("\n", blocks.ConvertAll(block => Convert.ToBase64String(block))));
+            Console.WriteLine("\nPadding oracle attack results:");
+            Console.WriteLine("(first block cannot be decrypted)");
 
             for (int blockIndex = 1; blockIndex < blocks.Count; ++blockIndex)
             {
-                Console.WriteLine(DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]));
+                string decryptedPlaintext = DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]);
+                Console.WriteLine(decryptedPlaintext[0] != 16 ? decryptedPlaintext : "(padding-only block)");
             }
         }
 
