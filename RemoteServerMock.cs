@@ -1,3 +1,4 @@
+using System.Threading;
 using System.IO;
 using System.Security.Cryptography;
 
@@ -6,6 +7,7 @@ namespace Padding_Oracle_Attack
     class RemoteServerMock
     {
         private Aes aesAlg = Aes.Create();
+        public uint OracleDelayMilliseconds { get; set; } = 0;
 
         public RemoteServerMock()
         {
@@ -37,6 +39,11 @@ namespace Padding_Oracle_Attack
 
         public bool IsPaddingCorrect(byte[] ciphertext)
         {
+            if (OracleDelayMilliseconds > 0)
+            {
+                Thread.Sleep((int)OracleDelayMilliseconds);
+            }
+
             try
             {
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
