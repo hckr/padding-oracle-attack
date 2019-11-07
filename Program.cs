@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace Padding_Oracle_Attack
 {
@@ -17,11 +18,45 @@ namespace Padding_Oracle_Attack
 
             Console.WriteLine("Plaintext:\n{0}", hiddenMessage);
             Console.WriteLine("\nCiphertext:\n{0}", String.Join("\n", blocks.ConvertAll(block => Convert.ToBase64String(block))));
-            Console.WriteLine("\nAttack results:\nTODO");
+            Console.WriteLine("\nAttack results:");
 
-            encrypted[encrypted.Length - 1] = 22;
+            for (int blockIndex = 1; blockIndex < blocks.Count; ++blockIndex)
+            {
+                Console.WriteLine(DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]));
+            }
+        }
 
-            Console.WriteLine("\nPadding is {0}", server.IsPaddingCorrect(encrypted) ? "correct" : "incorrect");
+        private static string DecryptBlock(byte[] block, byte[] previousBlock)
+        {
+            byte[] decrypted = new byte[block.Length];
+            byte[] manipulatedPrevious = new byte[16];
+
+            // in case of PKCS7 padding value is same as padding length
+            for (int paddingLength = 1; paddingLength <= block.Length; ++paddingLength)
+            {
+                for (int pos = block.Length - 1; pos >= block.Length - paddingLength; --pos)
+                {
+                    int previousPaddingLength = paddingLength - 1;
+                    manipulatedPrevious[pos] ^= (byte)(previousPaddingLength ^ paddingLength);
+                }
+                var found = false;
+                for (byte v = byte.MinValue; v <= byte.MaxValue; ++v)
+                {
+                    manipulatedPrevious[block.Length - paddingLength] = v;
+                    if (server.IsPaddingCorrect(concat(manipulatedPrevious, block)))
+                    {
+                        found = true;
+                        decrypted[block.Length - paddingLength] = (byte)(previousBlock[block.Length - paddingLength] ^ paddingLength ^ v);
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    throw new Exception("Decryption not possible. This function supports only AES/CBC/PKCS7");
+                }
+            }
+
+            return Encoding.UTF8.GetString(decrypted, 0, decrypted.Length);
         }
     }
 }
