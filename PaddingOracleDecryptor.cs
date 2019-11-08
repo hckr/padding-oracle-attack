@@ -11,10 +11,10 @@ namespace Padding_Oracle_Attack
         public PaddingOracleDecryptor(RemoteServerMock oracle)
         {
             this.oracle = oracle;
-            paddingValueProvider = PaddingValueProviders.GetFromMode(oracle.Padding);
+            paddingValueProvider = PaddingUtils.GetPaddingValueProviderFromMode(oracle.Padding);
         }
 
-        public string DecryptBlock(byte[] block, byte[] previousBlock)
+        public byte[] DecryptBlock(byte[] block, byte[] previousBlock)
         {
             byte[] decrypted = new byte[block.Length];
             byte[] manipulatedPrevious = new byte[16];
@@ -48,7 +48,7 @@ namespace Padding_Oracle_Attack
                 }
             }
 
-            return Encoding.UTF8.GetString(decrypted, 0, decrypted.Length);
+            return decrypted;
         }
 
     }

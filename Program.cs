@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text;
 using Mono.Options;
 
 namespace Padding_Oracle_Attack
@@ -9,8 +10,9 @@ namespace Padding_Oracle_Attack
     {
         // change the padding used by the oracle below (decryptor uses the same as the server/oracle)
         private const PaddingMode paddingMode = PaddingMode.PKCS7;
-        private static RemoteServerMock server = new RemoteServerMock(paddingMode);
-        private static PaddingOracleDecryptor decryptor = new PaddingOracleDecryptor(server);
+        private static RemoteServerMock oracle = new RemoteServerMock(paddingMode);
+        private static PaddingOracleDecryptor decryptor = new PaddingOracleDecryptor(oracle);
+        private static bool removePadding = true; // can be set to false by HandleConfigurationArguments
 
         public static void Main(String[] args)
         {
@@ -18,12 +20,12 @@ namespace Padding_Oracle_Attack
 
             HandleConfigurationArguments(args);
 
-            Console.WriteLine("Oracle response delay set to {0} ms.", server.OracleDelayMilliseconds);
+            Console.WriteLine("Oracle response delay set to {0} ms.", oracle.OracleDelayMilliseconds);
 
             Console.WriteLine("\nEnter plaintext:");
             string plaintext = Console.ReadLine();
 
-            byte[] encrypted = server.Encrypt(plaintext);
+            byte[] encrypted = oracle.Encrypt(plaintext);
             var blocks = ByteUtils.SliceIntoBlocks(encrypted);
 
             Console.WriteLine("\nCiphertext blocks (base64):\n{0}", String.Join("\n", blocks.ConvertAll(block => Convert.ToBase64String(block))));
@@ -33,15 +35,22 @@ namespace Padding_Oracle_Attack
 
             var stopwatch = new Stopwatch();
 
-            for (int blockIndex = 1; blockIndex < blocks.Count; ++blockIndex)
+            var lastBlockIndex = blocks.Count - 1;
+            for (int blockIndex = 1; blockIndex <= lastBlockIndex; ++blockIndex)
             {
                 stopwatch.Start();
 
-                string decryptedPlaintext = decryptor.DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]);
+                var decrypted = decryptor.DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]);
 
                 stopwatch.Stop();
 
-                Console.WriteLine(decryptedPlaintext[0] != 16 ? decryptedPlaintext : "(padding-only block)");
+                if (removePadding && blockIndex == lastBlockIndex)
+                {
+                    decrypted = PaddingUtils.GetPaddingRemoverFromMode(oracle.Padding).Invoke(decrypted);
+                }
+
+                var decryptedPlaintext = Encoding.UTF8.GetString(decrypted, 0, decrypted.Length);
+                Console.WriteLine(decryptedPlaintext.Length > 0 ? decryptedPlaintext : "(padding-only block)");
             }
 
             var decodedBlocksCount = blocks.Count - 1;
@@ -57,7 +66,8 @@ namespace Padding_Oracle_Attack
         private static void HandleConfigurationArguments(String[] args)
         {
             OptionSet arguments = new OptionSet();
-            arguments.Add("d|delay=", "oracle delay in milliseconds for each padding request", (uint d) => server.OracleDelayMilliseconds = d);
+            arguments.Add("d|delay=", "oracle delay in milliseconds for each padding request", (uint d) => oracle.OracleDelayMilliseconds = d);
+            arguments.Add("p|preserve-padding", "don't remove padding from decoded string", _ => removePadding = false);
             arguments.Add("h|help", "displays this message", _ =>
             {
                 arguments.WriteOptionDescriptions(Console.Out);
