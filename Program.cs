@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using System.Security.Cryptography;
+using System.Net.Mime;
 using System.Linq;
 using System.Diagnostics;
 using System;
@@ -9,7 +10,8 @@ namespace Padding_Oracle_Attack
 {
     class PaddingOracleAttack
     {
-        private static RemoteServerMock server = new RemoteServerMock();
+        private static RemoteServerMock server = new RemoteServerMock(PaddingMode.PKCS7);
+        private static PaddingOracleDecryptor decryptor = new PaddingOracleDecryptor(server);
 
         public static void Main(String[] args)
         {
@@ -36,7 +38,7 @@ namespace Padding_Oracle_Attack
             {
                 stopwatch.Start();
 
-                string decryptedPlaintext = DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]);
+                string decryptedPlaintext = decryptor.DecryptBlock(blocks[blockIndex], blocks[blockIndex - 1]);
 
                 stopwatch.Stop();
 
@@ -57,7 +59,8 @@ namespace Padding_Oracle_Attack
         {
             OptionSet arguments = new OptionSet();
             arguments.Add("d|delay=", "oracle delay in milliseconds for each padding request", (uint d) => server.OracleDelayMilliseconds = d);
-            arguments.Add("h|help", "displays this message", _ => {
+            arguments.Add("h|help", "displays this message", _ =>
+            {
                 arguments.WriteOptionDescriptions(Console.Out);
                 Environment.Exit(0);
             });
@@ -65,7 +68,8 @@ namespace Padding_Oracle_Attack
             try
             {
                 var rest = arguments.Parse(args);
-                if (rest.Count == 0) {
+                if (rest.Count == 0)
+                {
                     return;
                 }
                 Console.WriteLine("Unrecognized arguments: {0}", String.Join(",", rest));
@@ -77,39 +81,6 @@ namespace Padding_Oracle_Attack
 
             arguments.WriteOptionDescriptions(Console.Out);
             Environment.Exit(1);
-        }
-
-        private static string DecryptBlock(byte[] block, byte[] previousBlock)
-        {
-            byte[] decrypted = new byte[block.Length];
-            byte[] manipulatedPrevious = new byte[16];
-
-            // in case of PKCS7 padding value is same as padding length
-            for (int paddingLength = 1; paddingLength <= block.Length; ++paddingLength)
-            {
-                for (int pos = block.Length - 1; pos >= block.Length - paddingLength; --pos)
-                {
-                    int previousPaddingLength = paddingLength - 1;
-                    manipulatedPrevious[pos] ^= (byte)(previousPaddingLength ^ paddingLength);
-                }
-                var found = false;
-                for (byte v = byte.MinValue; v <= byte.MaxValue; ++v)
-                {
-                    manipulatedPrevious[block.Length - paddingLength] = v;
-                    if (server.IsPaddingCorrect(ByteUtils.Concatenate(manipulatedPrevious, block)))
-                    {
-                        found = true;
-                        decrypted[block.Length - paddingLength] = (byte)(previousBlock[block.Length - paddingLength] ^ paddingLength ^ v);
-                        break;
-                    }
-                }
-                if (!found)
-                {
-                    throw new Exception("Decryption not possible. This function supports only AES/CBC/PKCS7");
-                }
-            }
-
-            return Encoding.UTF8.GetString(decrypted, 0, decrypted.Length);
         }
     }
 }

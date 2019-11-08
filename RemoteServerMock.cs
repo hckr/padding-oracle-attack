@@ -9,11 +9,17 @@ namespace Padding_Oracle_Attack
         private Aes aesAlg = Aes.Create();
         public uint OracleDelayMilliseconds { get; set; } = 0;
 
-        public RemoteServerMock()
+        public PaddingMode Padding {
+            get {
+                return aesAlg.Padding;
+            }
+        }
+
+        public RemoteServerMock(PaddingMode paddingMode = PaddingMode.PKCS7)
         {
             aesAlg.BlockSize = 128;
             aesAlg.Mode = CipherMode.CBC;
-            aesAlg.Padding = PaddingMode.PKCS7;
+            aesAlg.Padding = paddingMode;
         }
 
         public byte[] Encrypt(string plaintext)
