@@ -1,16 +1,15 @@
-﻿using System.Security.Cryptography;
-using System.Net.Mime;
-using System.Linq;
+﻿using System;
 using System.Diagnostics;
-using System;
-using System.Text;
+using System.Security.Cryptography;
 using Mono.Options;
 
 namespace Padding_Oracle_Attack
 {
     class PaddingOracleAttack
     {
-        private static RemoteServerMock server = new RemoteServerMock(PaddingMode.PKCS7);
+        // change the padding used by the oracle below (decryptor uses the same as the server/oracle)
+        private const PaddingMode paddingMode = PaddingMode.PKCS7;
+        private static RemoteServerMock server = new RemoteServerMock(paddingMode);
         private static PaddingOracleDecryptor decryptor = new PaddingOracleDecryptor(server);
 
         public static void Main(String[] args)

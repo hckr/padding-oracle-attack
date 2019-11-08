@@ -1,7 +1,5 @@
 using System;
 using System.Text;
-using System.Reflection;
-using System.Security.Cryptography;
 
 namespace Padding_Oracle_Attack
 {
@@ -13,12 +11,8 @@ namespace Padding_Oracle_Attack
         public PaddingOracleDecryptor(RemoteServerMock oracle)
         {
             this.oracle = oracle;
-
-            PaddingMode paddingMode = oracle.Padding;
-            // TODO: ugly, but works!
-            paddingValueProvider = (int pos, int paddingLength, int blockLength) => (byte)(typeof(PaddingValueProviders).GetMethod(Enum.GetName(typeof(PaddingMode), paddingMode)).Invoke(null, new object[] { pos, paddingLength, blockLength }));
+            paddingValueProvider = PaddingValueProviders.GetFromMode(oracle.Padding);
         }
-
 
         public string DecryptBlock(byte[] block, byte[] previousBlock)
         {
