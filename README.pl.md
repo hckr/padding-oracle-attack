@@ -19,12 +19,12 @@ Algorytm deszyfrujący pojedynczy blok znajduje się w klasie [`PaddingOracleDec
 W programie przewidziano wsparcie dla dwóch algorytmów dopełnień – PKCS7 i ANSI X.923 (w celu zmiany stosowanej implementacji należy zmodyfikować pole `paddingMode` w pliku [Program.cs](Program.cs)). Funkcje pomocnicze zwracające ich wartości na zadanych pozycjach i usuwające dopełnienie z bloków znajdują się w klasie [`PaddingUtils`](PaddingUtils.cs).
 
 Główny plik programu to [Program.cs](Program.cs) – zawiera on obsługę interakcji z użytkownikiem.
-Program należy uruchomić poleceniem `dotnet run`, wcześniej należy jednak pobrać zależności poleceniem „dotnet restore”. O dostępnych (opcjonalnych) argumentach wywołania programu można dowiedzieć się, wpisując `dotnet run -- --help`.
+Program należy uruchomić poleceniem `dotnet run`, wcześniej należy jednak pobrać zależności poleceniem `dotnet restore`. O dostępnych (opcjonalnych) argumentach wywołania programu można dowiedzieć się, wpisując `dotnet run -- --help`.
 
 ## Odpowiedzi na pytania
 
 1. **Jaki jest czas wykonania wykonania ataku dla szyfrogramu o wielkości 10 bloków?**
-Kolejne trzy wyniki (s): 3,5829065; 3,4902909; 3,5674863. Średnia: 3,5468946 s. (2.5374309 bloków / s).
+Kolejne trzy wyniki (s): 3,5829065; 3,4902909; 3,5674863. Średnia: 3,5468946 s. (2,5374309 bloków / s).
 (Pierwszy blok nie był deszyfrowany.)
 Procesor: Intel® Core™ i5-4210U CPU @ 1.70GHz.
 
